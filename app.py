@@ -8,84 +8,89 @@ from datetime import datetime
 FECHA_INICIO_CUCHUBAL = datetime(2026, 2, 10) 
 CUOTA_SEMANAL = 2.50
 PASSWORD_ADMIN = "1234" 
-NOMBRES = ["Ociel", "Jonathan", "Gisselle", "Sofia", "Cristopher", "Leslie"]
+NOMBRES = sorted(["Ociel", "Jonathan", "Gisselle", "Sofia", "Cristopher", "Leslie"])
 
 TOKEN = st.secrets["GITHUB_TOKEN"]
 REPO_NAME = st.secrets["REPO_NAME"]
 FILE_PATH = "datos_pagos.json"
 
-# Icono de Google para la pestaña del navegador
 GOOGLE_ICON_WHITE = "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/payments/default/24px.svg?color=%23FFFFFF"
 
-st.set_page_config(
-    page_title="Cuchubal Digital", 
-    page_icon=GOOGLE_ICON_WHITE, 
-    layout="centered"
-)
+st.set_page_config(page_title="SISTEMA CUCHUBAL", page_icon=GOOGLE_ICON_WHITE, layout="centered")
 
-# --- 2. CSS ADAPTATIVO (MODO CLARO Y OSCURO) ---
+# --- 2. CSS: ESTILO PROFESIONAL CUADRADO ---
 st.markdown("""
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600&family=Roboto:wght@400;700&display=swap" />
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        /* Fuente Profesional */
+        html, body, [class*="css"] { 
+            font-family: 'Roboto', sans-serif; 
+        }
         
-        /* Forzamos la fuente Inter globalmente */
-        html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-
-        /* Iconos de Google adaptativos */
-        .google-icon {
-            font-family: 'Material Symbols Outlined';
-            vertical-align: middle;
-            font-size: 28px;
-            margin-right: 8px;
-            color: #58a6ff; /* El azul resalta bien en ambos modos */
+        /* Títulos en Mono para aspecto técnico */
+        h1, h2, h3, .google-icon { 
+            font-family: 'Roboto Mono', monospace; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        /* TARJETAS: Usamos variables nativas de Streamlit */
+        .google-icon {
+            vertical-align: middle;
+            font-family: 'Material Symbols Outlined';
+            color: var(--text-color);
+        }
+
+        /* TARJETAS CUADRADAS */
         div[data-testid="stMetric"] { 
             background-color: var(--secondary-background-color); 
-            border: 1px solid var(--border-color); 
-            padding: 15px; 
-            border-radius: 12px; 
+            border: 2px solid var(--text-color); /* Borde fuerte y recto */
+            border-radius: 0px !important; /* ELIMINAR REDONDEO */
+            padding: 20px;
+            box-shadow: 5px 5px 0px #58a6ff; /* Sombra sólida estilo industrial */
         }
 
-        /* Texto de métricas adaptativo */
-        div[data-testid="stMetricLabel"] { 
-            color: var(--text-color) !important; 
-            opacity: 0.8;
-            font-weight: 600; 
-        }
-        div[data-testid="stMetricValue"] { 
-            color: var(--text-color) !important; 
+        /* INPUTS Y BOTONES CUADRADOS */
+        .stTextInput>div>div>input, .stSelectbox>div>div>div, .stNumberInput>div>div>input {
+            border-radius: 0px !important;
+            border: 1px solid var(--text-color) !important;
         }
 
-        /* PESTAÑAS (TABS) ADAPTATIVAS */
-        button[data-baseweb="tab"]:nth-child(1)::before {
-            content: "analytics"; font-family: 'Material Symbols Outlined';
-            margin-right: 8px; font-size: 20px;
+        .stButton>button { 
+            background-color: transparent; 
+            color: var(--text-color) !important;
+            border: 2px solid var(--text-color) !important;
+            border-radius: 0px !important; /* BOTÓN CUADRADO */
+            height: 48px;
+            font-weight: 700;
+            text-transform: uppercase;
+            transition: 0.3s;
         }
-        button[data-baseweb="tab"]:nth-child(2)::before {
-            content: "settings"; font-family: 'Material Symbols Outlined';
-            margin-right: 8px; font-size: 20px;
+        .stButton>button:hover {
+            background-color: var(--text-color) !important;
+            color: var(--background-color) !important;
         }
 
+        /* PESTAÑAS TIPO EXPEDIENTE */
         .stTabs [data-baseweb="tab"] {
-            background-color: transparent;
-            color: var(--text-color);
-            opacity: 0.7;
+            border-radius: 0px !important;
+            border: 1px solid var(--border-color);
+            margin-right: 4px;
+            padding: 10px 20px;
         }
         .stTabs [aria-selected="true"] { 
-            opacity: 1 !important;
-            color: #58a6ff !important; 
-            border-bottom: 2px solid #58a6ff !important;
+            background-color: #58a6ff !important;
+            color: white !important;
+            border: 1px solid #58a6ff !important;
         }
 
-        /* BOTÓN: Estilo estándar de éxito */
-        .stButton>button { 
-            background-color: #238636; 
-            color: white !important; /* Siempre blanco porque el fondo es verde oscuro */
-            border: none; border-radius: 6px; 
-            height: 45px; font-weight: 600; width: 100%;
+        /* Iconos en Tabs */
+        button[data-baseweb="tab"]:nth-child(1)::before {
+            content: "table_chart"; font-family: 'Material Symbols Outlined';
+            margin-right: 10px;
+        }
+        button[data-baseweb="tab"]:nth-child(2)::before {
+            content: "admin_panel_settings"; font-family: 'Material Symbols Outlined';
+            margin-right: 10px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -97,66 +102,71 @@ repo = g.get_repo(REPO_NAME)
 def cargar_datos_github():
     try:
         contents = repo.get_contents(FILE_PATH)
-        return json.loads(contents.decoded_content.decode()), contents.sha
+        db = json.loads(contents.decoded_content.decode())
+        for n in NOMBRES:
+            if n not in db: db[n] = 0.0
+        return db, contents.sha
     except:
         return {nombre: 0.0 for nombre in NOMBRES}, None
 
 def guardar_en_github(nuevos_datos, sha):
     contenido_json = json.dumps(nuevos_datos, indent=4)
     if sha:
-        repo.update_file(FILE_PATH, "Sincronización", contenido_json, sha)
+        repo.update_file(FILE_PATH, "REGISTRO_CONTABLE", contenido_json, sha)
     else:
-        repo.create_file(FILE_PATH, "Creación DB", contenido_json)
+        repo.create_file(FILE_PATH, "INICIO_CONTABLE", contenido_json)
 
 datos, archivo_sha = cargar_datos_github()
 
 # --- 4. CÁLCULOS ---
-dias_transcurridos = (datetime.now() - FECHA_INICIO_CUCHUBAL).days
-semanas_actuales = max(0, dias_transcurridos // 7)
+semanas_actuales = max(0, (datetime.now() - FECHA_INICIO_CUCHUBAL).days // 7)
 monto_esperado = semanas_actuales * CUOTA_SEMANAL
 fondo_total = sum(datos.values())
 
 # --- 5. INTERFAZ ---
 st.markdown(f"""
-
-    <div style='text-align: center; padding-bottom: 20px;'>
-        <h1 style='color: var(--text-color); margin-bottom: 5px;'>
-            <span class="google-icon" style="font-size: 40px;">payments</span>
-            Cuchubal Digital
-        </h1>
-        <p style='color: var(--text-color); opacity: 0.6;'>
-            Semana {semanas_actuales} • Meta Individual: ${monto_esperado:.2f}
-        </p>
+    <div style='border-bottom: 3px solid var(--text-color); margin-bottom: 30px; padding-bottom: 10px;'>
+        <h2 style='margin: 0;'>
+            <span class="google-icon" style="font-size: 35px;">account_balance_wallet</span>
+            SISTEMA DE CONTROL DE CUCHUBAL
+        </h2>
+        <code style='font-size: 14px;'>ESTADO AL: {datetime.now().strftime('%Y-%m-%d %H:%M')} | SEMANA: {semanas_actuales}</code>
     </div>
 """, unsafe_allow_html=True)
 
-st.metric("FONDO TOTAL ACUMULADO", f"${fondo_total:,.2f}")
+# Métrica Principal con diseño de bloque
+st.metric("TOTAL EN FONDO (USD)", f"${fondo_total:,.2f}")
 
-tab1, tab2 = st.tabs(["ESTADO DE CUENTA", "GESTIÓN ADMIN"])
+tab1, tab2 = st.tabs(["REPORTE GENERAL", "MODULO ADMINISTRATIVO"])
 
 with tab1:
     st.write("")
-    user = st.selectbox("Seleccionar integrante", ["-- Elegir --"] + NOMBRES)
-    if user != "-- Elegir --":
+    user = st.selectbox("IDENTIFICACIÓN DE USUARIO:", ["-- SELECCIONAR --"] + NOMBRES)
+    if user != "-- SELECCIONAR --":
         total_u = datos.get(user, 0.0)
         dif = total_u - monto_esperado
-        st.markdown(f"### <span class='google-icon'>person</span> {user}", unsafe_allow_html=True)
+        
+        st.markdown(f"### <span class='google-icon'>label</span> EXPEDIENTE: {user.upper()}")
+        
         c1, c2 = st.columns(2)
-        c1.metric("Aportado", f"${total_u:.2f}")
+        c1.metric("APORTES TOTALES", f"${total_u:.2f}")
+        
         if dif >= 0:
-            c2.metric("Balance", f"+${abs(dif):.2f}")
-            st.success("Estás al día.")
+            c2.metric("ESTADO BALANCE", f"+${abs(dif):.2f}")
+            st.info(f"SOLVENTE. Adelanto de {int(abs(dif)/CUOTA_SEMANAL)} períodos.")
         else:
-            c2.metric("Balance", f"-${abs(dif):.2f}", delta_color="inverse")
-            st.error(f"Pendiente. Debes ${abs(dif):.2f}")
+            c2.metric("ESTADO BALANCE", f"-${abs(dif):.2f}", delta_color="inverse")
+            st.error(f"DEUDA PENDIENTE: ${abs(dif):.2f}")
 
 with tab2:
     st.write("")
-    if st.text_input("Llave de acceso", type="password") == PASSWORD_ADMIN:
-        p_pago = st.selectbox("Integrante:", NOMBRES)
-        m_pago = st.number_input("Monto:", min_value=0.0, step=2.50, value=2.50)
-        if st.button("REGISTRAR PAGO"):
+    if st.text_input("ACCESO RESTRINGIDO (PIN):", type="password") == PASSWORD_ADMIN:
+        st.markdown("#### REGISTRO DE TRANSACCIÓN")
+        p_pago = st.selectbox("SELECCIONAR BENEFICIARIO:", NOMBRES)
+        m_pago = st.number_input("MONTO DE CUOTA ($):", min_value=0.0, step=2.50, value=2.50)
+        
+        if st.button("PROCESAR Y SINCRONIZAR"):
             datos[p_pago] += m_pago
             guardar_en_github(datos, archivo_sha)
-            st.success("Sincronizado")
+            st.success("TRANSACCIÓN COMPLETADA EXITOSAMENTE")
             st.rerun()
