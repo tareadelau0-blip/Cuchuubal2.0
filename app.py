@@ -14,46 +14,38 @@ TOKEN = st.secrets["GITHUB_TOKEN"]
 REPO_NAME = st.secrets["REPO_NAME"]
 FILE_PATH = "datos_pagos.json"
 
-st.set_page_config(page_title="Cuchubal 2.0", page_icon="💳", layout="centered")
+st.set_page_config(page_title="Cuchubal Digital", page_icon="💳", layout="centered")
 
-# --- ESTILO CSS AVANZADO ---
+# --- ESTILO CSS CON GOOGLE ICONS ---
 st.markdown("""
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
     
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     
-    .main { background-color: #0e1117; }
-    
-    /* Tarjetas de métricas */
+    /* Iconos */
+    .material-symbols-outlined {
+        vertical-align: middle;
+        font-size: 24px;
+        margin-right: 8px;
+        color: #58a6ff;
+    }
+
+    /* Tarjetas */
     div[data-testid="stMetric"] {
         background-color: #161b22;
         border: 1px solid #30363d;
         padding: 15px;
         border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     
-    div[data-testid="stMetricLabel"] { color: #8b949e !important; font-size: 14px !important; }
-    div[data-testid="stMetricValue"] { color: #58a6ff !important; font-size: 32px !important; }
-
-    /* Estilo de Tabs */
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #21262d;
-        border-radius: 8px 8px 0 0;
-        padding: 10px 20px;
-        color: #c9d1d9;
-    }
-    .stTabs [aria-selected="true"] { background-color: #30363d !important; color: #58a6ff !important; }
-
-    /* Botón de acción */
+    /* Botón */
     .stButton>button {
-        background: linear-gradient(90deg, #1f6feb 0%, #58a6ff 100%);
-        color: white; border: none; border-radius: 8px;
-        height: 45px; font-weight: 600; transition: 0.3s;
+        background-color: #238636;
+        color: white; border: none; border-radius: 6px;
+        height: 45px; font-weight: 600; width: 100%;
     }
-    .stButton>button:hover { opacity: 0.9; transform: translateY(-1px); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -83,19 +75,20 @@ semanas_actuales = max(0, dias_transcurridos // 7)
 monto_esperado = semanas_actuales * CUOTA_SEMANAL
 fondo_total = sum(datos.values())
 
-# --- HEADER ---
-st.markdown("<div style='text-align: center; padding: 20px;'>", unsafe_allow_html=True)
-st.markdown("<h2 style='margin-bottom: 0;'>🏦 Cuchubal Digital</h2>", unsafe_allow_html=True)
-st.markdown(f"<p style='color: #8b949e;'>Semana {semanas_actuales} • Meta Individual: ${monto_esperado:.2f}</p>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
+# --- INTERFAZ ---
+st.markdown(f"""
+    <div style='text-align: center;'>
+        <h1 style='margin-bottom: 0;'>
+            <span class="material-symbols-outlined" style="font-size: 45px;">account_balance</span>
+            Cuchubal Digital
+        </h1>
+        <p style='color: #8b949e;'>Semana {semanas_actuales} • Meta: ${monto_esperado:.2f}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# --- KPI PRINCIPAL ---
 st.metric("FONDO GLOBAL", f"${fondo_total:,.2f}")
 
-st.write("")
-
-# --- SECCIONES ---
-tab1, tab2 = st.tabs(["📊 ESTADO DE CUENTA", "🛠 GESTIÓN"])
+tab1, tab2 = st.tabs(["ESTADO", "ADMIN"])
 
 with tab1:
     st.write("")
@@ -105,31 +98,30 @@ with tab1:
         total_usuario = datos.get(user, 0.0)
         diferencia = total_usuario - monto_esperado
         
+        st.markdown(f"### <span class='material-symbols-outlined'>person</span> {user}", unsafe_allow_html=True)
+        
         c1, c2 = st.columns(2)
-        with c1:
-            st.metric("Aportado", f"${total_usuario:.2f}")
-        with c2:
-            if diferencia >= 0:
-                st.metric("Balance", f"+${abs(diferencia):.2f}")
-                st.success(f"**Al día.** Adelanto: {int(abs(diferencia)/CUOTA_SEMANAL)} cuotas.")
-            else:
-                st.metric("Balance", f"-${abs(diferencia):.2f}", delta_color="inverse")
-                st.error(f"**Pendiente.** Debe: {int(abs(diferencia)/CUOTA_SEMANAL)} cuotas.")
+        c1.metric("Aportado", f"${total_usuario:.2f}")
+        
+        if diferencia >= 0:
+            c2.metric("Balance", f"+${abs(diferencia):.2f}")
+            st.success(f"Estás al día. Adelanto: {int(abs(diferencia)/CUOTA_SEMANAL)} cuotas.")
+        else:
+            c2.metric("Balance", f"-${abs(diferencia):.2f}", delta_color="inverse")
+            st.error(f"Pendiente. Debes {int(abs(diferencia)/CUOTA_SEMANAL)} cuotas.")
 
 with tab2:
     st.write("")
-    with st.container():
-        pw = st.text_input("Admin Key", type="password", placeholder="Contraseña de acceso")
+    pw = st.text_input("Contraseña", type="password", placeholder="••••")
+    
+    if pw == PASSWORD_ADMIN:
+        st.markdown("---")
+        p_pago = st.selectbox("Integrante", NOMBRES)
+        m_pago = st.number_input("Monto a registrar", min_value=0.0, step=2.50, value=2.50)
         
-        if pw == PASSWORD_ADMIN:
-            st.markdown("---")
-            col_a, col_b = st.columns([2, 1])
-            p_pago = col_a.selectbox("Integrante:", NOMBRES)
-            m_pago = col_b.number_input("Monto:", min_value=0.0, step=2.50, value=2.50)
-            
-            if st.button("REGISTRAR APORTACIÓN"):
-                with st.spinner("Sincronizando..."):
-                    datos[p_pago] += m_pago
-                    guardar_en_github(datos, archivo_sha)
-                    st.success("Registro exitoso")
-                    st.rerun()
+        if st.button("REGISTRAR PAGO"):
+            with st.spinner("Sincronizando..."):
+                datos[p_pago] += m_pago
+                guardar_en_github(datos, archivo_sha)
+                st.success("¡Sincronizado!")
+                st.rerun()
