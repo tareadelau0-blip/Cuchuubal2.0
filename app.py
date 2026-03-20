@@ -15,9 +15,13 @@ REPO_NAME = st.secrets["REPO_NAME"]
 FILE_PATH = "datos_pagos.json"
 
 # Icono de Google para la pestaña del navegador
-GOOGLE_ICON_URL = "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/payments/default/24px.svg"
+GOOGLE_ICON_WHITE = "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/payments/default/24px.svg?color=%23FFFFFF"
 
-st.set_page_config(page_title="Cuchubal Digital", page_icon=GOOGLE_ICON_URL, layout="centered")
+st.set_page_config(
+    page_title="Cuchubal Digital", 
+    page_icon=GOOGLE_ICON_WHITE, 
+    layout="centered"
+)
 
 # --- 2. CSS ADAPTATIVO (MODO CLARO Y OSCURO) ---
 st.markdown("""
@@ -114,9 +118,10 @@ fondo_total = sum(datos.values())
 
 # --- 5. INTERFAZ ---
 st.markdown(f"""
+
     <div style='text-align: center; padding-bottom: 20px;'>
         <h1 style='color: var(--text-color); margin-bottom: 5px;'>
-            <span class="google-icon" style="font-size: 40px; color: white;">payments</span>
+            <span class="google-icon" style="font-size: 40px;">payments</span>
             Cuchubal Digital
         </h1>
         <p style='color: var(--text-color); opacity: 0.6;'>
