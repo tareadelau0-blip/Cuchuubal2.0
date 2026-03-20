@@ -6,7 +6,7 @@ from datetime import datetime
 
 # --- CONFIGURACIÓN ---
 # IMPORTANTE: Pon aquí la fecha exacta en que inició el primer pago (Año, Mes, Día)
-FECHA_INICIO_CUCHUBAL = datetime(2026, 2, 15) 
+FECHA_INICIO_CUCHUBAL = datetime(2026, 2, 10) 
 CUOTA_SEMANAL = 2.50
 PASSWORD_ADMIN = "1234" 
 NOMBRES = ["Ociel", "Jonathan", "Gisselle", "Sofia", "Cristopher", "Leslie"]
