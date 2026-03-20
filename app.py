@@ -16,40 +16,58 @@ FILE_PATH = "datos_pagos.json"
 
 st.set_page_config(page_title="Cuchubal Digital", page_icon="💳", layout="centered")
 
-# --- ESTILO CSS CON GOOGLE ICONS ---
+# --- ESTILO CSS FINAL (Basado en tu selección) ---
 st.markdown("""
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
     
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    
-    /* Iconos */
-    .material-symbols-outlined {
-        vertical-align: middle;
-        font-size: 24px;
-        margin-right: 8px;
-        color: #58a6ff;
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #0d1117; }
+
+    /* Iconos de Google */
+    .material-symbols-outlined { 
+        vertical-align: middle; 
+        font-size: 24px; 
+        margin-right: 8px; 
+        color: #58a6ff; 
     }
 
-    /* Tarjetas */
-    div[data-testid="stMetric"] {
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        padding: 15px;
-        border-radius: 12px;
+    /* Tarjetas de Métricas */
+    div[data-testid="stMetric"] { 
+        background-color: #161b22; 
+        border: 1px solid #30363d; 
+        padding: 15px; 
+        border-radius: 12px; 
     }
     
-    /* Botón */
-    .stButton>button {
-        background-color: #238636;
-        color: white; border: none; border-radius: 6px;
-        height: 45px; font-weight: 600; width: 100%;
+    div[data-testid="stMetricLabel"] { color: #8b949e !important; }
+
+    /* Botón Principal */
+    .stButton>button { 
+        background-color: #238636; 
+        color: white; 
+        border: none; 
+        border-radius: 6px; 
+        height: 45px; 
+        font-weight: 600; 
+        width: 100%; 
+        transition: 0.2s;
     }
+    .stButton>button:hover { background-color: #2ea043; border: none; color: white; }
+
+    /* Estilo de Tabs */
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
+    .stTabs [data-baseweb="tab"] {
+        height: 45px;
+        background-color: #161b22;
+        border-radius: 6px 6px 0 0;
+        color: #8b949e;
+    }
+    .stTabs [aria-selected="true"] { background-color: #30363d !important; color: #58a6ff !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- LÓGICA DE GITHUB ---
+# --- LÓGICA DE DATOS ---
 g = Github(TOKEN)
 repo = g.get_repo(REPO_NAME)
 
@@ -77,42 +95,45 @@ fondo_total = sum(datos.values())
 
 # --- INTERFAZ ---
 st.markdown(f"""
-    <div style='text-align: center;'>
-        <h1 style='margin-bottom: 0;'>
-            <span class="material-symbols-outlined" style="font-size: 45px;">account_balance</span>
+    <div style='text-align: center; padding-bottom: 20px;'>
+        <h1 style='color: white; margin-bottom: 5px;'>
+            <span class="material-symbols-outlined" style="font-size: 40px;">account_balance</span>
             Cuchubal Digital
         </h1>
-        <p style='color: #8b949e;'>Semana {semanas_actuales} • Meta: ${monto_esperado:.2f}</p>
+        <p style='color: #8b949e;'>Semana {semanas_actuales} • Meta Individual: ${monto_esperado:.2f}</p>
     </div>
     """, unsafe_allow_html=True)
 
+# KPI Principal
 st.metric("FONDO GLOBAL", f"${fondo_total:,.2f}")
 
-tab1, tab2 = st.tabs(["ESTADO", "ADMIN"])
+st.write("")
+
+tab1, tab2 = st.tabs(["ESTADO DE CUENTA", "GESTIÓN"])
 
 with tab1:
     st.write("")
-    user = st.selectbox("Seleccionar integrante", ["--"] + NOMBRES)
+    user = st.selectbox("Seleccionar integrante", ["-- Seleccionar --"] + NOMBRES)
     
-    if user != "--":
-        total_usuario = datos.get(user, 0.0)
-        diferencia = total_usuario - monto_esperado
+    if user != "-- Seleccionar --":
+        total_user = datos.get(user, 0.0)
+        balance = total_user - monto_esperado
         
         st.markdown(f"### <span class='material-symbols-outlined'>person</span> {user}", unsafe_allow_html=True)
         
         c1, c2 = st.columns(2)
-        c1.metric("Aportado", f"${total_usuario:.2f}")
+        c1.metric("Aportado", f"${total_user:.2f}")
         
-        if diferencia >= 0:
-            c2.metric("Balance", f"+${abs(diferencia):.2f}")
-            st.success(f"Estás al día. Adelanto: {int(abs(diferencia)/CUOTA_SEMANAL)} cuotas.")
+        if balance >= 0:
+            c2.metric("Balance", f"+${abs(balance):.2f}")
+            st.success(f"Estás al día. Adelanto: {int(abs(balance)/CUOTA_SEMANAL)} semanas.")
         else:
-            c2.metric("Balance", f"-${abs(diferencia):.2f}", delta_color="inverse")
-            st.error(f"Pendiente. Debes {int(abs(diferencia)/CUOTA_SEMANAL)} cuotas.")
+            c2.metric("Balance", f"-${abs(balance):.2f}", delta_color="inverse")
+            st.error(f"Pendiente. Debes {int(abs(balance)/CUOTA_SEMANAL)} semanas.")
 
 with tab2:
     st.write("")
-    pw = st.text_input("Contraseña", type="password", placeholder="••••")
+    pw = st.text_input("Admin Key", type="password", placeholder="••••")
     
     if pw == PASSWORD_ADMIN:
         st.markdown("---")
@@ -120,8 +141,8 @@ with tab2:
         m_pago = st.number_input("Monto a registrar", min_value=0.0, step=2.50, value=2.50)
         
         if st.button("REGISTRAR PAGO"):
-            with st.spinner("Sincronizando..."):
+            with st.spinner("Sincronizando con GitHub..."):
                 datos[p_pago] += m_pago
                 guardar_en_github(datos, archivo_sha)
-                st.success("¡Sincronizado!")
+                st.success("¡Sincronizado correctamente!")
                 st.rerun()
