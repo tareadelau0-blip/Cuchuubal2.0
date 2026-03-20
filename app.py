@@ -116,7 +116,7 @@ fondo_total = sum(datos.values())
 st.markdown(f"""
     <div style='text-align: center; padding-bottom: 20px;'>
         <h1 style='color: var(--text-color); margin-bottom: 5px;'>
-            <span class="google-icon" style="font-size: 40px;">payments</span>
+            <span class="google-icon" style="font-size: 40px; color: white;">payments</span>
             Cuchubal Digital
         </h1>
         <p style='color: var(--text-color); opacity: 0.6;'>
