@@ -14,7 +14,7 @@ TOKEN = st.secrets["GITHUB_TOKEN"]
 REPO_NAME = st.secrets["REPO_NAME"]
 FILE_PATH = "datos_pagos.json"
 
-st.set_page_config(page_title="SISTEMA CUCHUBAL", page_icon="💳", layout="centered")
+st.set_page_config(page_title="COCHUBAL", page_icon="💳", layout="centered")
 
 # --- 2. CSS: ESTILO INDUSTRIAL RECTO ---
 st.markdown("""
