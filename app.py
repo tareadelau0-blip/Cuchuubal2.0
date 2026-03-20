@@ -1,74 +1,62 @@
 import streamlit as st
 import pandas as pd
 import json
-import os
+from github import Github
 from datetime import datetime
 
-# --- CONFIGURACIÓN INICIAL ---
-archivo_datos = "datos_pagos.json"
-PASSWORD_ADMIN = "1234"  # <--- Cambia esta contraseña
-CUOTA_SEMANAL = 2.50
-NOMBRES = ["Ociel", "Gisselle", "Jonathan", "Leslie", "Cristopher", "Sofìa"]
+# --- CONFIGURACIÓN DE SEGURIDAD ---
+# Estos datos los pondrás en "Settings > Secrets" de Streamlit Cloud
+TOKEN = st.secrets["GITHUB_TOKEN"]
+REPO_NAME = st.secrets["REPO_NAME"] # Ejemplo: "tu_usuario/tu_repositorio"
+FILE_PATH = "datos_pagos.json"
+PASSWORD_ADMIN = "1234" 
+NOMBRES = ["Persona 1", "Persona 2", "Persona 3", "Persona 4", "Persona 5", "Persona 6"]
 
-st.set_page_config(page_title="Control de Cuotas", page_icon="💰")
+st.set_page_config(page_title="Control de Pagos Seguro", page_icon="💾")
 
-# --- FUNCIONES DE BASE DE DATOS ---
-def cargar_datos():
-    if os.path.exists(archivo_datos):
-        with open(archivo_datos, "r") as f:
-            return json.load(f)
-    # Si no existe, inicializa a todos en 0
-    return {nombre: 0.0 for nombre in NOMBRES}
+# --- CONEXIÓN CON GITHUB ---
+g = Github(TOKEN)
+repo = g.get_repo(REPO_NAME)
 
-def guardar_datos(datos):
-    with open(archivo_datos, "w") as f:
-        json.dump(datos, f)
+def cargar_datos_github():
+    try:
+        contents = repo.get_contents(FILE_PATH)
+        return json.loads(contents.decoded_content.decode()), contents.sha
+    except:
+        # Si el archivo no existe, crea uno inicial
+        datos_iniciales = {nombre: 0.0 for nombre in NOMBRES}
+        return datos_iniciales, None
 
-datos = cargar_datos()
+def guardar_en_github(nuevos_datos, sha):
+    contenido_json = json.dumps(nuevos_datos, indent=4)
+    if sha:
+        repo.update_file(FILE_PATH, "Actualización de pagos", contenido_json, sha)
+    else:
+        repo.create_file(FILE_PATH, "Creación de archivo de pagos", contenido_json)
 
-# --- INTERFAZ PÚBLICA (Para los 6 integrantes) ---
-st.title("💰 Control de Aportaciones")
-st.info("Cuota semanal: $2.50")
+# Cargar datos al iniciar
+datos, archivo_sha = cargar_datos_github()
 
-tab1, tab2 = st.tabs(["Consultar mi Estado", "Panel Administrador"])
+# --- INTERFAZ ---
+st.title("💰 Sistema de Pagos (Respaldo en GitHub)")
+
+tab1, tab2 = st.tabs(["Consultar mi Estado", "Administración"])
 
 with tab1:
-    usuario = st.selectbox("Selecciona tu nombre:", ["-- Seleccionar --"] + NOMBRES)
-    
-    if usuario != "-- Seleccionar --":
-        total_pagado = datos[usuario]
-        # Cálculo de semanas (puedes ajustar la lógica de fecha si prefieres)
-        semanas_pagadas = total_pagado / CUOTA_SEMANAL
-        
-        col1, col2 = st.columns(2)
-        col1.metric("Total Aportado", f"${total_pagado:.2f}")
-        col2.metric("Semanas Cubiertas", f"{semanas_pagadas:.2f}")
-        
-        st.divider()
-        st.subheader(f"Fondo Global: ${sum(datos.values()):.2f}")
+    user = st.selectbox("Selecciona tu nombre:", ["--"] + NOMBRES)
+    if user != "--":
+        total = datos.get(user, 0.0)
+        st.metric(label=f"Aportado por {user}", value=f"${total:.2f}")
+        st.write(f"Semanas equivalentes: {total/2.5:.2f}")
 
-# --- PANEL DE ADMINISTRADOR (Para ti) ---
 with tab2:
-    pw = st.text_input("Contraseña de Admin", type="password")
-    
+    pw = st.text_input("Contraseña", type="password")
     if pw == PASSWORD_ADMIN:
-        st.success("Acceso concedido")
-        st.subheader("Registrar Nuevo Pago")
+        persona = st.selectbox("Registrar pago para:", NOMBRES)
+        monto = st.number_input("Cantidad ($)", step=2.50)
         
-        persona_pago = st.selectbox("¿Quién pagó?", NOMBRES, key="admin_sel")
-        monto_nuevo = st.number_input("Monto a sumar ($)", min_value=0.0, step=2.50)
-        
-        if st.button("Registrar Pago"):
-            datos[persona_pago] += monto_nuevo
-            guardar_datos(datos)
-            st.toast(f"¡Pago de {persona_pago} registrado!")
+        if st.button("Confirmar y Sincronizar con GitHub"):
+            datos[persona] += monto
+            guardar_en_github(datos, archivo_sha)
+            st.success(f"¡Datos guardados en GitHub para {persona}!")
             st.rerun()
-            
-        st.divider()
-        if st.button("Limpiar Base de Datos (Reset)", help="Pone todos los contadores a 0"):
-            if st.checkbox("Confirmar reset total"):
-                datos = {nombre: 0.0 for nombre in NOMBRES}
-                guardar_datos(datos)
-                st.rerun()
-    elif pw != "":
-        st.error("Contraseña incorrecta")
