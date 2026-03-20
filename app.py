@@ -91,7 +91,7 @@ fondo_total = sum(datos.values())
 # --- 5. INTERFAZ ---
 st.markdown(f"""
     <div class="header-box">
-        <h2 style='margin: 0;'>[SISTEMA_CONTABLE_CUCHUBAL]</h2>
+        <h2 style='margin: 0;'>REGISTROS CUCHUBAL</h2>
         <small>FECHA: {datetime.now().strftime('%d/%m/%Y')} | SEMANA: {semanas_actuales}</small>
     </div>
 """, unsafe_allow_html=True)
