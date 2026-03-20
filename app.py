@@ -46,22 +46,20 @@ def cargar_datos_github():
     try:
         contents = repo.get_contents(FILE_PATH)
         db = json.loads(contents.decoded_content.decode())
-        # Asegurar que existan las claves de gastos
-        if "gastos_total" not in db: db["gastos_total"] = 0.0
-        if "historial_gastos" not in db: db["historial_gastos"] = []
+        # Inicializar claves de retiros si no existen
+        if "lista_retiros" not in db: db["lista_retiros"] = []
         for n in NOMBRES:
             if n not in db: db[n] = 0.0
         return db, contents.sha
     except:
-        # Si el archivo no existe, crear estructura base
-        base = {n: 0.0 for n in NOMBRES}
-        base.update({"gastos_total": 0.0, "historial_gastos": []})
+        base = {nombre: 0.0 for nombre in NOMBRES}
+        base["lista_retiros"] = []
         return base, None
 
 def guardar_en_github(nuevos_datos, sha):
     contenido_json = json.dumps(nuevos_datos, indent=4)
     if sha:
-        repo.update_file(FILE_PATH, "ACTUALIZACION_SISTEMA", contenido_json, sha)
+        repo.update_file(FILE_PATH, "UPDATE_SISTEMA", contenido_json, sha)
     else:
         repo.create_file(FILE_PATH, "INIT_SISTEMA", contenido_json)
 
@@ -71,9 +69,10 @@ datos, archivo_sha = cargar_datos_github()
 semanas_actuales = max(0, (datetime.now() - FECHA_INICIO_CUCHUBAL).days // 7)
 monto_esperado = semanas_actuales * CUOTA_SEMANAL
 
-# El fondo total es la suma de aportes menos los retiros
-ingresos_brutos = sum(datos[n] for n in NOMBRES)
-fondo_neto = ingresos_brutos - datos["gastos_total"]
+# Cálculo de Fondos
+total_ingresos = sum(datos[n] for n in NOMBRES)
+total_retiros = sum(r['monto'] for r in datos["lista_retiros"])
+fondo_neto = total_ingresos - total_retiros
 
 # --- 5. INTERFAZ ---
 st.markdown(f"""
@@ -83,37 +82,68 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Métricas principales
-col_f1, col_f2 = st.columns(2)
-col_f1.metric("SALDO NETO EN CAJA", f"${fondo_neto:,.2f}")
-col_f2.metric("TOTAL RETIRADO", f"${datos['gastos_total']:,.2f}", delta_color="inverse")
+col_m1, col_m2 = st.columns(2)
+col_m1.metric("FONDO NETO DISPONIBLE", f"${fondo_neto:,.2f}")
+col_m2.metric("TOTAL RETIRADO", f"${total_retiros:,.2f}", delta_color="inverse")
 
 menu = st.radio(
-    "SELECCIONE MÓDULO:",
-    ["CONSULTA DE SALDOS", "REGISTRO DE INGRESOS", "RETIRO DE EFECTIVO"],
+    "MÓDULO:",
+    ["CONSULTA DE SALDOS", "REGISTRO DE INGRESOS", "RETIRO DE CAJA"],
     horizontal=True
 )
 
 st.write("---")
 
-# --- MÓDULO 1: SALDOS ---
 if menu == "CONSULTA DE SALDOS":
-    user = st.selectbox("IDENTIFICACIÓN DE INTEGRANTE:", ["-- SELECCIONAR --"] + NOMBRES)
+    user = st.selectbox("INTEGRANTE:", ["-- SELECCIONAR --"] + NOMBRES)
     if user != "-- SELECCIONAR --":
         total_u = datos.get(user, 0.0)
         dif = total_u - monto_esperado
-        st.markdown(f"### REGISTRO: {user.upper()}")
+        st.markdown(f"### ESTADO: {user.upper()}")
         c1, c2 = st.columns(2)
         c1.metric("APORTADO", f"${total_u:.2f}")
         c2.metric("BALANCE", f"{'+' if dif >= 0 else ''}${dif:.2f}", delta_color="normal" if dif >= 0 else "inverse")
         
-        if dif >= 0: st.success("ESTADO: AL DÍA")
-        else: st.error(f"ESTADO: PENDIENTE (${abs(dif):.2f})")
+        if dif >= 0:
+            st.success(f"SOLVENTE")
+        else:
+            st.error(f"PENDIENTE DE PAGO")
 
-# --- MÓDULO 2: INGRESOS ---
 elif menu == "REGISTRO DE INGRESOS":
-    if st.text_input("PASSWORD ADMIN:", type="password") == PASSWORD_ADMIN:
-        p_pago = st.selectbox("INTEGRANTE:", NOMBRES)
-        m_pago = st.number_input("MONTO A INGRESAR ($):", min_value=0.0, step=2.50, value=2.50)
-        if st.button("CONFIRMAR INGRESO"):
+    if st.text_input("PASSWORD:", type="password") == PASSWORD_ADMIN:
+        p_pago = st.selectbox("PAGADOR:", NOMBRES)
+        m_pago = st.number_input("MONTO ($):", min_value=0.0, step=2.50, value=2.50)
+        if st.button("REGISTRAR INGRESO"):
             datos[p_pago] += m_pago
+            guardar_en_github(datos, archivo_sha)
+            st.success("INGRESO GUARDADO")
+            st.rerun()
+
+elif menu == "RETIRO DE CAJA":
+    if st.text_input("PASSWORD ADMIN:", type="password") == PASSWORD_ADMIN:
+        st.markdown("#### NUEVO RETIRO DE EFECTIVO")
+        m_retiro = st.number_input("CANTIDAD A RETIRAR ($):", min_value=0.0, step=1.0)
+        motivo = st.text_input("CONCEPTO / POR QUÉ:")
+        
+        if st.button("CONFIRMAR SALIDA DE DINERO"):
+            if m_retiro > fondo_neto:
+                st.error("ERROR: NO HAY SUFICIENTE DINERO EN CAJA.")
+            elif not motivo:
+                st.warning("DEBE ESPECIFICAR UN MOTIVO.")
+            else:
+                nuevo_retiro = {
+                    "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "monto": m_retiro,
+                    "motivo": motivo.upper()
+                }
+                datos["lista_retiros"].append(nuevo_retiro)
+                guardar_en_github(datos, archivo_sha)
+                st.success("RETIRO REGISTRADO")
+                st.rerun()
+        
+        # Mostrar historial de retiros
+        if datos["lista_retiros"]:
+            st.write("---")
+            st.markdown("#### HISTORIAL DE RETIROS")
+            df_retiros = pd.DataFrame(datos["lista_retiros"])
+            st.table(df_retiros.iloc[::-1]) # Los más nuevos primero
