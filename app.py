@@ -8,7 +8,7 @@ from datetime import datetime
 archivo_datos = "datos_pagos.json"
 PASSWORD_ADMIN = "1234"  # <--- Cambia esta contraseña
 CUOTA_SEMANAL = 2.50
-NOMBRES = ["Persona 1", "Persona 2", "Persona 3", "Persona 4", "Persona 5", "Persona 6"]
+NOMBRES = ["Ociel", "Gisselle", "Jonathan", "Leslie", "Cristopher", "Sofìa"]
 
 st.set_page_config(page_title="Control de Cuotas", page_icon="💰")
 
