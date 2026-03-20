@@ -6,10 +6,10 @@ from datetime import datetime
 
 # --- CONFIGURACIÓN ---
 # IMPORTANTE: Pon aquí la fecha exacta en que inició el primer pago (Año, Mes, Día)
-FECHA_INICIO_CUCHUBAL = datetime(2024, 3, 1) 
+FECHA_INICIO_CUCHUBAL = datetime(2026, 1, 16) 
 CUOTA_SEMANAL = 2.50
 PASSWORD_ADMIN = "1234" 
-NOMBRES = ["Persona 1", "Persona 2", "Persona 3", "Persona 4", "Persona 5", "Persona 6"]
+NOMBRES = ["Ociel", "Jonathan", "Gisselle", "Sofia", "Cristopher", "Leslie"]
 
 # Configuración de Secrets de Streamlit
 TOKEN = st.secrets["GITHUB_TOKEN"]
