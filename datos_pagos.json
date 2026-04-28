@@ -5,5 +5,11 @@
     "Sofia": 27.5,
     "Cristopher": 25.0,
     "Leslie": 25.0,
-    "lista_retiros": []
+    "lista_retiros": [
+        {
+            "fecha": "28/04/2026 17:25",
+            "monto": 55.0,
+            "motivo": "ALQUILER DE CARRO Y COMBUSTIBLE PARA SALIDA A LA PLAYA"
+        }
+    ]
 }
