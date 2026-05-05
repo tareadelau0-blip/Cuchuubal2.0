@@ -10,6 +10,11 @@
             "fecha": "28/04/2026 17:25",
             "monto": 55.0,
             "motivo": "ALQUILER DE CARRO Y COMBUSTIBLE PARA SALIDA A LA PLAYA"
+        },
+        {
+            "fecha": "05/05/2026 19:23",
+            "monto": 105.0,
+            "motivo": "CONSUMO EN PLAYA LA PISCINA"
         }
     ]
 }
