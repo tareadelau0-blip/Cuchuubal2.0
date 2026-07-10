@@ -7,7 +7,7 @@ from datetime import datetime
 # --- 1. CONFIGURACIÓN ---
 FECHA_INICIO_CUCHUBAL = datetime(2026, 2, 10) 
 CUOTA_SEMANAL = 2.50
-PASSWORD_ADMIN = "1234" 
+PASSWORD_ADMIN = "1234gboc" 
 NOMBRES = sorted(["Ociel", "Jonathan", "Gisselle", "Sofia", "Cristopher", "Leslie"])
 
 TOKEN = st.secrets["GITHUB_TOKEN"]
