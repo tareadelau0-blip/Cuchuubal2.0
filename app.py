@@ -46,18 +46,23 @@ def cargar_datos_github():
     try:
         contents = repo.get_contents(FILE_PATH)
         db = json.loads(contents.decoded_content.decode())
-        # Inicializar claves de retiros si no existen
-        if "lista_retiros" not in db: db["lista_retiros"] = []
+        # Inicializar claves si no existen
+        if "lista_retiros" not in db:
+            db["lista_retiros"] = []
+        if "historial_movimientos" not in db:
+            db["historial_movimientos"] = []
         for n in NOMBRES:
-            if n not in db: db[n] = 0.0
+            if n not in db:
+                db[n] = 0.0
         return db, contents.sha
     except:
         base = {nombre: 0.0 for nombre in NOMBRES}
         base["lista_retiros"] = []
+        base["historial_movimientos"] = []
         return base, None
 
 def guardar_en_github(nuevos_datos, sha):
-    contenido_json = json.dumps(nuevos_datos, indent=4)
+    contenido_json = json.dumps(nuevos_datos, indent=4, ensure_ascii=False)
     if sha:
         repo.update_file(FILE_PATH, "UPDATE_SISTEMA", contenido_json, sha)
     else:
@@ -69,7 +74,6 @@ datos, archivo_sha = cargar_datos_github()
 semanas_actuales = max(0, (datetime.now() - FECHA_INICIO_CUCHUBAL).days // 7)
 monto_esperado = semanas_actuales * CUOTA_SEMANAL
 
-# Cálculo de Fondos
 total_ingresos = sum(datos[n] for n in NOMBRES)
 total_retiros = sum(r['monto'] for r in datos["lista_retiros"])
 fondo_neto = total_ingresos - total_retiros
@@ -88,7 +92,7 @@ col_m2.metric("TOTAL RETIRADO", f"${total_retiros:,.2f}", delta_color="inverse")
 
 menu = st.radio(
     "MÓDULO:",
-    ["CONSULTA DE SALDOS", "REGISTRO DE INGRESOS", "RETIRO DE CAJA"],
+    ["CONSULTA DE SALDOS", "REGISTRO DE INGRESOS", "RETIRO DE CAJA", "HISTORIAL DE MOVIMIENTOS"],
     horizontal=True
 )
 
@@ -113,8 +117,18 @@ elif menu == "REGISTRO DE INGRESOS":
     if st.text_input("PASSWORD:", type="password") == PASSWORD_ADMIN:
         p_pago = st.selectbox("PAGADOR:", NOMBRES)
         m_pago = st.number_input("MONTO ($):", min_value=0.0, step=2.50, value=2.50)
+        # Opcional: añadir concepto
+        concepto = st.text_input("CONCEPTO (opcional):", placeholder="Ej. Pago semanal")
         if st.button("REGISTRAR INGRESO"):
             datos[p_pago] += m_pago
+            # Registrar en historial
+            datos["historial_movimientos"].append({
+                "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "tipo": "INGRESO",
+                "persona": p_pago,
+                "monto": m_pago,
+                "concepto": concepto.strip() if concepto else "Pago registrado"
+            })
             guardar_en_github(datos, archivo_sha)
             st.success("INGRESO GUARDADO")
             st.rerun()
@@ -137,13 +151,40 @@ elif menu == "RETIRO DE CAJA":
                     "motivo": motivo.upper()
                 }
                 datos["lista_retiros"].append(nuevo_retiro)
+                # Registrar en historial
+                datos["historial_movimientos"].append({
+                    "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "tipo": "RETIRO",
+                    "persona": None,
+                    "monto": m_retiro,
+                    "concepto": motivo.upper()
+                })
                 guardar_en_github(datos, archivo_sha)
                 st.success("RETIRO REGISTRADO")
                 st.rerun()
         
-        # Mostrar historial de retiros
+        # Mostrar historial de retiros (opcional)
         if datos["lista_retiros"]:
             st.write("---")
             st.markdown("#### HISTORIAL DE RETIROS")
             df_retiros = pd.DataFrame(datos["lista_retiros"])
             st.table(df_retiros.iloc[::-1]) # Los más nuevos primero
+
+elif menu == "HISTORIAL DE MOVIMIENTOS":
+    st.markdown("### REGISTRO COMPLETO DE MOVIMIENTOS")
+    if not datos["historial_movimientos"]:
+        st.info("No hay movimientos registrados aún.")
+    else:
+        # Ordenar de más reciente a más antiguo (por fecha, asumiendo formato dd/mm/yyyy HH:MM)
+        historial = sorted(datos["historial_movimientos"], key=lambda x: datetime.strptime(x["fecha"], "%d/%m/%Y %H:%M"), reverse=True)
+        df_hist = pd.DataFrame(historial)
+        # Renombrar columnas para claridad
+        df_hist.rename(columns={
+            "fecha": "Fecha/Hora",
+            "tipo": "Tipo",
+            "persona": "Persona",
+            "monto": "Monto ($)",
+            "concepto": "Concepto"
+        }, inplace=True)
+        # Mostrar tabla con formato
+        st.table(df_hist)
