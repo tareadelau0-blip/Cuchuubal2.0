@@ -16,7 +16,17 @@ FILE_PATH = "datos_pagos.json"
 
 st.set_page_config(page_title="COCHUBAL", page_icon="💳", layout="centered")
 
-# --- 2. CSS: ESTILO INDUSTRIAL RECTO ---
+# --- 2. INICIALIZAR SESSION STATE ---
+if "procesando_ingreso" not in st.session_state:
+    st.session_state.procesando_ingreso = False
+if "procesando_retiro" not in st.session_state:
+    st.session_state.procesando_retiro = False
+if "confirmacion_ingreso" not in st.session_state:
+    st.session_state.confirmacion_ingreso = None
+if "confirmacion_retiro" not in st.session_state:
+    st.session_state.confirmacion_retiro = None
+
+# --- 3. CSS: ESTILO INDUSTRIAL RECTO ---
 st.markdown("""
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600&display=swap" />
     <style>
@@ -35,10 +45,17 @@ st.markdown("""
             background-color: var(--text-color); color: var(--background-color) !important;
             font-weight: bold; text-transform: uppercase;
         }
+        .stButton>button:disabled {
+            opacity: 0.5; cursor: not-allowed;
+        }
+        .confirmacion-box {
+            border: 2px solid #00d084; background-color: #00d08420; padding: 15px;
+            border-radius: 0px; margin: 15px 0; font-weight: bold;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. LÓGICA DE DATOS ---
+# --- 4. LÓGICA DE DATOS ---
 g = Github(TOKEN)
 repo = g.get_repo(REPO_NAME)
 
@@ -70,7 +87,7 @@ def guardar_en_github(nuevos_datos, sha):
 
 datos, archivo_sha = cargar_datos_github()
 
-# --- 4. CÁLCULOS ---
+# --- 5. CÁLCULOS ---
 semanas_actuales = max(0, (datetime.now() - FECHA_INICIO_CUCHUBAL).days // 7)
 monto_esperado = semanas_actuales * CUOTA_SEMANAL
 
@@ -78,7 +95,7 @@ total_ingresos = sum(datos[n] for n in NOMBRES)
 total_retiros = sum(r['monto'] for r in datos["lista_retiros"])
 fondo_neto = total_ingresos - total_retiros
 
-# --- 5. INTERFAZ ---
+# --- 6. INTERFAZ ---
 st.markdown(f"""
     <div class="header-box">
         <h2 style='margin: 0;'>CONTROL DE CAJA CUCHUBAL</h2>
@@ -117,21 +134,75 @@ elif menu == "REGISTRO DE INGRESOS":
     if st.text_input("PASSWORD:", type="password") == PASSWORD_ADMIN:
         p_pago = st.selectbox("PAGADOR:", NOMBRES)
         m_pago = st.number_input("MONTO ($):", min_value=0.0, step=2.50, value=2.50)
-        # Opcional: añadir concepto
         concepto = st.text_input("CONCEPTO (opcional):", placeholder="Ej. Pago semanal")
-        if st.button("REGISTRAR INGRESO"):
-            datos[p_pago] += m_pago
-            # Registrar en historial
-            datos["historial_movimientos"].append({
-                "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                "tipo": "INGRESO",
-                "persona": p_pago,
-                "monto": m_pago,
-                "concepto": concepto.strip() if concepto else "Pago registrado"
-            })
-            guardar_en_github(datos, archivo_sha)
-            st.success("INGRESO GUARDADO")
+        
+        # Botón con estado de "procesando"
+        if st.button(
+            "REGISTRAR INGRESO",
+            disabled=st.session_state.procesando_ingreso,
+            key="btn_ingreso"
+        ):
+            st.session_state.procesando_ingreso = True
             st.rerun()
+        
+        # Si está procesando, ejecutar la lógica y mostrar confirmación
+        if st.session_state.procesando_ingreso:
+            try:
+                datos[p_pago] += m_pago
+                # Registrar en historial
+                datos["historial_movimientos"].append({
+                    "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "tipo": "INGRESO",
+                    "persona": p_pago,
+                    "monto": m_pago,
+                    "concepto": concepto.strip() if concepto else "Pago registrado"
+                })
+                guardar_en_github(datos, archivo_sha)
+                
+                # Mostrar confirmación
+                st.markdown(f"""
+                    <div class="confirmacion-box">
+                        ✓ PAGO REGISTRADO EXITOSAMENTE<br>
+                        <small>
+                            PAGADOR: {p_pago.upper()}<br>
+                            MONTO: ${m_pago:.2f}<br>
+                            CONCEPTO: {concepto.strip() if concepto else 'Pago registrado'}<br>
+                            HORA: {datetime.now().strftime('%H:%M:%S')}
+                        </small>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                st.session_state.confirmacion_ingreso = {
+                    "pagador": p_pago,
+                    "monto": m_pago,
+                    "concepto": concepto.strip() if concepto else "Pago registrado",
+                    "hora": datetime.now().strftime('%H:%M:%S')
+                }
+                
+                # Resetear flag después de 3 segundos
+                import time
+                time.sleep(3)
+                st.session_state.procesando_ingreso = False
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"ERROR AL GUARDAR: {str(e)}")
+                st.session_state.procesando_ingreso = False
+        
+        # Mostrar confirmación anterior si existe
+        if st.session_state.confirmacion_ingreso and not st.session_state.procesando_ingreso:
+            conf = st.session_state.confirmacion_ingreso
+            st.markdown(f"""
+                <div class="confirmacion-box">
+                    ✓ ÚLTIMO PAGO REGISTRADO<br>
+                    <small>
+                        PAGADOR: {conf['pagador'].upper()}<br>
+                        MONTO: ${conf['monto']:.2f}<br>
+                        CONCEPTO: {conf['concepto']}<br>
+                        HORA: {conf['hora']}
+                    </small>
+                </div>
+            """, unsafe_allow_html=True)
 
 elif menu == "RETIRO DE CAJA":
     if st.text_input("PASSWORD ADMIN:", type="password") == PASSWORD_ADMIN:
@@ -139,31 +210,95 @@ elif menu == "RETIRO DE CAJA":
         m_retiro = st.number_input("CANTIDAD A RETIRAR ($):", min_value=0.0, step=1.0)
         motivo = st.text_input("CONCEPTO / POR QUÉ:")
         
-        if st.button("CONFIRMAR SALIDA DE DINERO"):
-            if m_retiro > fondo_neto:
+        # Botón con estado de "procesando"
+        if st.button(
+            "CONFIRMAR SALIDA DE DINERO",
+            disabled=st.session_state.procesando_retiro,
+            key="btn_retiro"
+        ):
+            # Validaciones previas
+            if m_retiro <= 0:
+                st.error("ERROR: INGRESE UN MONTO VÁLIDO.")
+            elif m_retiro > fondo_neto:
                 st.error("ERROR: NO HAY SUFICIENTE DINERO EN CAJA.")
             elif not motivo:
                 st.warning("DEBE ESPECIFICAR UN MOTIVO.")
             else:
-                nuevo_retiro = {
-                    "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    "monto": m_retiro,
-                    "motivo": motivo.upper()
-                }
-                datos["lista_retiros"].append(nuevo_retiro)
-                # Registrar en historial
-                datos["historial_movimientos"].append({
-                    "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    "tipo": "RETIRO",
-                    "persona": None,
-                    "monto": m_retiro,
-                    "concepto": motivo.upper()
-                })
-                guardar_en_github(datos, archivo_sha)
-                st.success("RETIRO REGISTRADO")
+                st.session_state.procesando_retiro = True
                 st.rerun()
         
-        # Mostrar historial de retiros (opcional)
+        # Si está procesando, ejecutar la lógica y mostrar confirmación
+        if st.session_state.procesando_retiro:
+            if m_retiro <= 0:
+                st.error("ERROR: INGRESE UN MONTO VÁLIDO.")
+                st.session_state.procesando_retiro = False
+            elif m_retiro > fondo_neto:
+                st.error("ERROR: NO HAY SUFICIENTE DINERO EN CAJA.")
+                st.session_state.procesando_retiro = False
+            elif not motivo:
+                st.warning("DEBE ESPECIFICAR UN MOTIVO.")
+                st.session_state.procesando_retiro = False
+            else:
+                try:
+                    nuevo_retiro = {
+                        "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "monto": m_retiro,
+                        "motivo": motivo.upper()
+                    }
+                    datos["lista_retiros"].append(nuevo_retiro)
+                    # Registrar en historial
+                    datos["historial_movimientos"].append({
+                        "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "tipo": "RETIRO",
+                        "persona": None,
+                        "monto": m_retiro,
+                        "concepto": motivo.upper()
+                    })
+                    guardar_en_github(datos, archivo_sha)
+                    
+                    # Mostrar confirmación
+                    st.markdown(f"""
+                        <div class="confirmacion-box">
+                            ✓ RETIRO REGISTRADO EXITOSAMENTE<br>
+                            <small>
+                                MONTO: ${m_retiro:.2f}<br>
+                                CONCEPTO: {motivo.upper()}<br>
+                                FECHA: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
+                            </small>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.session_state.confirmacion_retiro = {
+                        "monto": m_retiro,
+                        "motivo": motivo.upper(),
+                        "fecha": datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+                    }
+                    
+                    # Resetear flag después de 3 segundos
+                    import time
+                    time.sleep(3)
+                    st.session_state.procesando_retiro = False
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"ERROR AL GUARDAR: {str(e)}")
+                    st.session_state.procesando_retiro = False
+        
+        # Mostrar confirmación anterior si existe
+        if st.session_state.confirmacion_retiro and not st.session_state.procesando_retiro:
+            conf = st.session_state.confirmacion_retiro
+            st.markdown(f"""
+                <div class="confirmacion-box">
+                    ✓ ÚLTIMO RETIRO REGISTRADO<br>
+                    <small>
+                        MONTO: ${conf['monto']:.2f}<br>
+                        CONCEPTO: {conf['motivo']}<br>
+                        FECHA: {conf['fecha']}
+                    </small>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # Mostrar historial de retiros
         if datos["lista_retiros"]:
             st.write("---")
             st.markdown("#### HISTORIAL DE RETIROS")
@@ -175,7 +310,7 @@ elif menu == "HISTORIAL DE MOVIMIENTOS":
     if not datos["historial_movimientos"]:
         st.info("No hay movimientos registrados aún.")
     else:
-        # Ordenar de más reciente a más antiguo (por fecha, asumiendo formato dd/mm/yyyy HH:MM)
+        # Ordenar de más reciente a más antiguo
         historial = sorted(datos["historial_movimientos"], key=lambda x: datetime.strptime(x["fecha"], "%d/%m/%Y %H:%M"), reverse=True)
         df_hist = pd.DataFrame(historial)
         # Renombrar columnas para claridad
