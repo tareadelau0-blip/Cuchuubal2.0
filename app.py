@@ -81,8 +81,16 @@ def cargar_datos_github():
         for n in NOMBRES:
             if n not in db:
                 db[n] = 0.0
+        # Asegurar que cada movimiento tenga un ID único
+        for mov in db["historial_movimientos"]:
+            if "id" not in mov:
+                mov["id"] = str(uuid.uuid4())
+        for ret in db["lista_retiros"]:
+            if "id" not in ret:
+                ret["id"] = str(uuid.uuid4())
         return db, contents.sha
-    except:
+    except Exception as e:
+        st.warning(f"No se pudo cargar el archivo, creando uno nuevo. Error: {e}")
         base = {nombre: 0.0 for nombre in NOMBRES}
         base["lista_retiros"] = []
         base["historial_movimientos"] = []
@@ -91,10 +99,13 @@ def cargar_datos_github():
 def guardar_en_github(nuevos_datos, sha):
     contenido_json = json.dumps(nuevos_datos, indent=4, ensure_ascii=False)
     if sha:
-        repo.update_file(FILE_PATH, "UPDATE_SISTEMA", contenido_json, sha)
+        resultado = repo.update_file(FILE_PATH, "UPDATE_SISTEMA", contenido_json, sha)
+        return resultado['content'].sha  # Nuevo SHA
     else:
-        repo.create_file(FILE_PATH, "INIT_SISTEMA", contenido_json)
+        resultado = repo.create_file(FILE_PATH, "INIT_SISTEMA", contenido_json)
+        return resultado['content'].sha  # Nuevo SHA
 
+# Cargar datos y mantener el SHA actualizado
 datos, archivo_sha = cargar_datos_github()
 
 # --- 5. CÁLCULOS ---
@@ -163,7 +174,7 @@ elif menu == "REGISTRO DE INGRESOS":
                     "monto": m_pago,
                     "concepto": concepto.strip() if concepto else "Pago registrado"
                 })
-                guardar_en_github(datos, archivo_sha)
+                archivo_sha = guardar_en_github(datos, archivo_sha)  # Actualizar SHA
                 
                 st.markdown(f"""
                     <div class="confirmacion-box">
@@ -211,25 +222,27 @@ elif menu == "CORRECCIÓN DE PAGOS":
     if st.text_input("PASSWORD ADMIN:", type="password") == PASSWORD_ADMIN:
         st.markdown("#### CORRECCIÓN DE PAGO ERRÓNEO")
         
-        # Mostrar últimos ingresos
+        # Filtrar solo ingresos
         ingresos = [m for m in datos["historial_movimientos"] if m["tipo"] == "INGRESO"]
-        if ingresos:
+        if not ingresos:
+            st.info("No hay ingresos registrados para corregir.")
+        else:
             st.subheader("Últimos ingresos registrados:")
             ingresos_ordenados = sorted(ingresos, key=lambda x: datetime.strptime(x["fecha"], "%d/%m/%Y %H:%M"), reverse=True)
             df_ing = pd.DataFrame(ingresos_ordenados[:20])
             st.table(df_ing)
-        
-        st.write("---")
-        st.markdown("#### Seleccione el ingreso a anular:")
-        
-        # Crear opciones para desplegable
-        if ingresos:
+            
+            st.write("---")
+            st.markdown("#### Seleccione el ingreso a anular:")
+            
+            # Crear opciones para desplegable
             opciones = []
-            for mov in ingresos:
+            for mov in ingresos_ordenados:
                 opciones.append(f"{mov['fecha']} | {mov['persona']} | ${mov['monto']:.2f} | {mov['concepto']}")
+            
             seleccion = st.selectbox("MOVIMIENTO A ANULAR:", opciones)
             idx_seleccionado = opciones.index(seleccion) if seleccion else 0
-            mov_anular = ingresos[idx_seleccionado]
+            mov_anular = ingresos_ordenados[idx_seleccionado]
             
             st.markdown(f"""
                 **DETALLES DEL MOVIMIENTO SELECCIONADO:**  
@@ -263,82 +276,87 @@ elif menu == "CORRECCIÓN DE PAGOS":
                     st.rerun()
             
             if st.session_state.procesando_correccion:
-                if monto_correcto <= 0:
-                    st.error("ERROR: INGRESE UN MONTO VÁLIDO.")
-                    st.session_state.procesando_correccion = False
-                elif persona_correcta == mov_anular['persona'] and monto_correcto == mov_anular['monto']:
-                    st.error("ERROR: LOS DATOS CORRECTOS SON IGUALES AL ORIGINAL.")
-                    st.session_state.procesando_correccion = False
-                elif not motivo_correccion:
-                    st.warning("DEBE ESPECIFICAR UN MOTIVO.")
+                # Volver a cargar los datos por si hubo cambios
+                datos, archivo_sha = cargar_datos_github()
+                # Recalcular ingresos
+                ingresos_actualizados = [m for m in datos["historial_movimientos"] if m["tipo"] == "INGRESO"]
+                if not ingresos_actualizados:
+                    st.error("Ya no hay ingresos para corregir.")
                     st.session_state.procesando_correccion = False
                 else:
-                    try:
-                        # 1. Anular el movimiento original
-                        id_anular = mov_anular['id']
-                        persona_errada = mov_anular['persona']
-                        monto_errado = mov_anular['monto']
-                        
-                        # Restar el monto de la persona errada
-                        datos[persona_errada] -= monto_errado
-                        
-                        # Eliminar el movimiento original del historial
-                        for i, m in enumerate(datos["historial_movimientos"]):
-                            if m.get("id") == id_anular:
-                                del datos["historial_movimientos"][i]
-                                break
-                        
-                        # Registrar ANULACIÓN en el historial (trazabilidad)
-                        datos["historial_movimientos"].append({
-                            "id": str(uuid.uuid4()),
-                            "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                            "tipo": "ANULACIÓN",
-                            "persona": persona_errada,
-                            "monto": -monto_errado,
-                            "concepto": f"ANULADO - {motivo_correccion.upper()}"
-                        })
-                        
-                        # 2. Registrar el nuevo ingreso correcto
-                        datos[persona_correcta] += monto_correcto
-                        datos["historial_movimientos"].append({
-                            "id": str(uuid.uuid4()),
-                            "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                            "tipo": "INGRESO",
-                            "persona": persona_correcta,
-                            "monto": monto_correcto,
-                            "concepto": f"CORRECCIÓN - {motivo_correccion.upper()}"
-                        })
-                        
-                        guardar_en_github(datos, archivo_sha)
-                        
-                        st.markdown(f"""
-                            <div class="confirmacion-box">
-                                ✓ CORRECCIÓN REALIZADA EXITOSAMENTE<br>
-                                <small>
-                                    ANULACIÓN: -${monto_errado:.2f} a {persona_errada.upper()}<br>
-                                    NUEVO INGRESO: +${monto_correcto:.2f} a {persona_correcta.upper()}<br>
-                                    MOTIVO: {motivo_correccion.upper()}<br>
-                                    HORA: {datetime.now().strftime('%H:%M:%S')}
-                                </small>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
-                        st.session_state.confirmacion_correccion = {
-                            "persona_errada": persona_errada,
-                            "monto_errado": monto_errado,
-                            "persona_correcta": persona_correcta,
-                            "monto_correcto": monto_correcto,
-                            "motivo": motivo_correccion,
-                            "hora": datetime.now().strftime('%H:%M:%S')
-                        }
-                        
-                        time.sleep(2)
+                    # Buscar el movimiento por ID para asegurar que aún existe
+                    mov_actual = next((m for m in ingresos_actualizados if m["id"] == mov_anular["id"]), None)
+                    if mov_actual is None:
+                        st.error("El movimiento seleccionado ya fue modificado o eliminado.")
                         st.session_state.procesando_correccion = False
-                        st.rerun()
-                        
-                    except Exception as e:
-                        st.error(f"ERROR AL GUARDAR: {str(e)}")
-                        st.session_state.procesando_correccion = False
+                    else:
+                        # Ejecutar corrección
+                        try:
+                            # 1. Anular el movimiento original
+                            id_anular = mov_actual['id']
+                            persona_errada = mov_actual['persona']
+                            monto_errado = mov_actual['monto']
+                            
+                            # Restar el monto de la persona errada
+                            datos[persona_errada] -= monto_errado
+                            
+                            # Eliminar el movimiento original del historial
+                            for i, m in enumerate(datos["historial_movimientos"]):
+                                if m.get("id") == id_anular:
+                                    del datos["historial_movimientos"][i]
+                                    break
+                            
+                            # Registrar ANULACIÓN
+                            datos["historial_movimientos"].append({
+                                "id": str(uuid.uuid4()),
+                                "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                                "tipo": "ANULACIÓN",
+                                "persona": persona_errada,
+                                "monto": -monto_errado,
+                                "concepto": f"ANULADO - {motivo_correccion.upper()}"
+                            })
+                            
+                            # 2. Registrar el nuevo ingreso correcto
+                            datos[persona_correcta] += monto_correcto
+                            datos["historial_movimientos"].append({
+                                "id": str(uuid.uuid4()),
+                                "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                                "tipo": "INGRESO",
+                                "persona": persona_correcta,
+                                "monto": monto_correcto,
+                                "concepto": f"CORRECCIÓN - {motivo_correccion.upper()}"
+                            })
+                            
+                            archivo_sha = guardar_en_github(datos, archivo_sha)
+                            
+                            st.markdown(f"""
+                                <div class="confirmacion-box">
+                                    ✓ CORRECCIÓN REALIZADA EXITOSAMENTE<br>
+                                    <small>
+                                        ANULACIÓN: -${monto_errado:.2f} a {persona_errada.upper()}<br>
+                                        NUEVO INGRESO: +${monto_correcto:.2f} a {persona_correcta.upper()}<br>
+                                        MOTIVO: {motivo_correccion.upper()}<br>
+                                        HORA: {datetime.now().strftime('%H:%M:%S')}
+                                    </small>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            
+                            st.session_state.confirmacion_correccion = {
+                                "persona_errada": persona_errada,
+                                "monto_errado": monto_errado,
+                                "persona_correcta": persona_correcta,
+                                "monto_correcto": monto_correcto,
+                                "motivo": motivo_correccion,
+                                "hora": datetime.now().strftime('%H:%M:%S')
+                            }
+                            
+                            time.sleep(2)
+                            st.session_state.procesando_correccion = False
+                            st.rerun()
+                            
+                        except Exception as e:
+                            st.error(f"ERROR AL GUARDAR: {str(e)}")
+                            st.session_state.procesando_correccion = False
             
             if st.session_state.confirmacion_correccion and not st.session_state.procesando_correccion:
                 conf = st.session_state.confirmacion_correccion
@@ -353,8 +371,6 @@ elif menu == "CORRECCIÓN DE PAGOS":
                         </small>
                     </div>
                 """, unsafe_allow_html=True)
-        else:
-            st.info("No hay ingresos registrados para corregir.")
 
 # ---------- RETIRO DE CAJA ----------
 elif menu == "RETIRO DE CAJA":
@@ -402,7 +418,7 @@ elif menu == "RETIRO DE CAJA":
                         "monto": m_retiro,
                         "concepto": motivo.upper()
                     })
-                    guardar_en_github(datos, archivo_sha)
+                    archivo_sha = guardar_en_github(datos, archivo_sha)
                     
                     st.markdown(f"""
                         <div class="confirmacion-box">
