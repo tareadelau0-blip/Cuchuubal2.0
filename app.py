@@ -21,10 +21,14 @@ if "procesando_ingreso" not in st.session_state:
     st.session_state.procesando_ingreso = False
 if "procesando_retiro" not in st.session_state:
     st.session_state.procesando_retiro = False
+if "procesando_correccion" not in st.session_state:
+    st.session_state.procesando_correccion = False
 if "confirmacion_ingreso" not in st.session_state:
     st.session_state.confirmacion_ingreso = None
 if "confirmacion_retiro" not in st.session_state:
     st.session_state.confirmacion_retiro = None
+if "confirmacion_correccion" not in st.session_state:
+    st.session_state.confirmacion_correccion = None
 
 # --- 3. CSS: ESTILO INDUSTRIAL RECTO ---
 st.markdown("""
@@ -50,6 +54,10 @@ st.markdown("""
         }
         .confirmacion-box {
             border: 2px solid #00d084; background-color: #00d08420; padding: 15px;
+            border-radius: 0px; margin: 15px 0; font-weight: bold;
+        }
+        .error-box {
+            border: 2px solid #ff6b6b; background-color: #ff6b6b20; padding: 15px;
             border-radius: 0px; margin: 15px 0; font-weight: bold;
         }
     </style>
@@ -109,7 +117,7 @@ col_m2.metric("TOTAL RETIRADO", f"${total_retiros:,.2f}", delta_color="inverse")
 
 menu = st.radio(
     "MÓDULO:",
-    ["CONSULTA DE SALDOS", "REGISTRO DE INGRESOS", "RETIRO DE CAJA", "HISTORIAL DE MOVIMIENTOS"],
+    ["CONSULTA DE SALDOS", "REGISTRO DE INGRESOS", "CORRECCIÓN DE PAGOS", "RETIRO DE CAJA", "HISTORIAL DE MOVIMIENTOS"],
     horizontal=True
 )
 
@@ -199,6 +207,142 @@ elif menu == "REGISTRO DE INGRESOS":
                         PAGADOR: {conf['pagador'].upper()}<br>
                         MONTO: ${conf['monto']:.2f}<br>
                         CONCEPTO: {conf['concepto']}<br>
+                        HORA: {conf['hora']}
+                    </small>
+                </div>
+            """, unsafe_allow_html=True)
+
+elif menu == "CORRECCIÓN DE PAGOS":
+    if st.text_input("PASSWORD ADMIN:", type="password") == PASSWORD_ADMIN:
+        st.markdown("#### CORRECCIÓN DE PAGO ERRÓNEO")
+        
+        # Mostrar historial de ingresos recientes
+        if datos["historial_movimientos"]:
+            ingresos = [m for m in datos["historial_movimientos"] if m["tipo"] == "INGRESO"]
+            if ingresos:
+                st.subheader("Últimos ingresos registrados:")
+                ingresos_ordenados = sorted(ingresos, key=lambda x: datetime.strptime(x["fecha"], "%d/%m/%Y %H:%M"), reverse=True)
+                df_ingresos = pd.DataFrame(ingresos_ordenados[:20])  # Últimos 20
+                st.table(df_ingresos)
+        
+        st.write("---")
+        st.markdown("#### Reversar y corregir ingreso:")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            persona_errada = st.selectbox("PERSONA CON PAGO INCORRECTO:", NOMBRES)
+        with col2:
+            monto_errado = st.number_input("MONTO A REVERSAR ($):", min_value=0.0, step=0.10)
+        
+        col3, col4 = st.columns(2)
+        with col3:
+            persona_correcta = st.selectbox("PERSONA CORRECTA:", NOMBRES)
+        with col4:
+            monto_correcto = st.number_input("MONTO CORRECTO ($):", min_value=0.0, step=0.10)
+        
+        motivo_correccion = st.text_input("MOTIVO DE LA CORRECCIÓN:")
+        
+        if st.button(
+            "CONFIRMAR CORRECCIÓN",
+            disabled=st.session_state.procesando_correccion,
+            key="btn_correccion"
+        ):
+            # Validaciones
+            if monto_errado <= 0:
+                st.error("ERROR: INGRESE UN MONTO VÁLIDO PARA REVERSAR.")
+            elif monto_correcto <= 0:
+                st.error("ERROR: INGRESE UN MONTO VÁLIDO PARA REGISTRAR.")
+            elif persona_errada == persona_correcta and monto_errado == monto_correcto:
+                st.error("ERROR: LOS DATOS DEBEN SER DIFERENTES AL ORIGINAL.")
+            elif not motivo_correccion:
+                st.warning("DEBE ESPECIFICAR UN MOTIVO.")
+            else:
+                st.session_state.procesando_correccion = True
+                st.rerun()
+        
+        if st.session_state.procesando_correccion:
+            if monto_errado <= 0:
+                st.error("ERROR: INGRESE UN MONTO VÁLIDO PARA REVERSAR.")
+                st.session_state.procesando_correccion = False
+            elif monto_correcto <= 0:
+                st.error("ERROR: INGRESE UN MONTO VÁLIDO PARA REGISTRAR.")
+                st.session_state.procesando_correccion = False
+            elif persona_errada == persona_correcta and monto_errado == monto_correcto:
+                st.error("ERROR: LOS DATOS DEBEN SER DIFERENTES AL ORIGINAL.")
+                st.session_state.procesando_correccion = False
+            elif not motivo_correccion:
+                st.warning("DEBE ESPECIFICAR UN MOTIVO.")
+                st.session_state.procesando_correccion = False
+            else:
+                try:
+                    # Reversar el pago errado
+                    datos[persona_errada] -= monto_errado
+                    
+                    # Registrar el pago correcto
+                    datos[persona_correcta] += monto_correcto
+                    
+                    # Registrar en historial (reversión)
+                    datos["historial_movimientos"].append({
+                        "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "tipo": "REVERSIÓN",
+                        "persona": persona_errada,
+                        "monto": -monto_errado,
+                        "concepto": f"REVERSIÓN - {motivo_correccion}"
+                    })
+                    
+                    # Registrar en historial (corrección)
+                    datos["historial_movimientos"].append({
+                        "fecha": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "tipo": "INGRESO",
+                        "persona": persona_correcta,
+                        "monto": monto_correcto,
+                        "concepto": f"CORRECCIÓN - {motivo_correccion}"
+                    })
+                    
+                    guardar_en_github(datos, archivo_sha)
+                    
+                    # Mostrar confirmación
+                    st.markdown(f"""
+                        <div class="confirmacion-box">
+                            ✓ CORRECCIÓN REALIZADA EXITOSAMENTE<br>
+                            <small>
+                                REVERSIÓN: -{monto_errado:.2f} a {persona_errada.upper()}<br>
+                                REGISTRO CORRECTO: +${monto_correcto:.2f} a {persona_correcta.upper()}<br>
+                                MOTIVO: {motivo_correccion.upper()}<br>
+                                HORA: {datetime.now().strftime('%H:%M:%S')}
+                            </small>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.session_state.confirmacion_correccion = {
+                        "persona_errada": persona_errada,
+                        "monto_errado": monto_errado,
+                        "persona_correcta": persona_correcta,
+                        "monto_correcto": monto_correcto,
+                        "motivo": motivo_correccion,
+                        "hora": datetime.now().strftime('%H:%M:%S')
+                    }
+                    
+                    # Resetear flag después de 3 segundos
+                    import time
+                    time.sleep(3)
+                    st.session_state.procesando_correccion = False
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"ERROR AL GUARDAR: {str(e)}")
+                    st.session_state.procesando_correccion = False
+        
+        # Mostrar confirmación anterior si existe
+        if st.session_state.confirmacion_correccion and not st.session_state.procesando_correccion:
+            conf = st.session_state.confirmacion_correccion
+            st.markdown(f"""
+                <div class="confirmacion-box">
+                    ✓ ÚLTIMA CORRECCIÓN REALIZADA<br>
+                    <small>
+                        REVERSIÓN: -${conf['monto_errado']:.2f} de {conf['persona_errada'].upper()}<br>
+                        INGRESO CORRECTO: +${conf['monto_correcto']:.2f} a {conf['persona_correcta'].upper()}<br>
+                        MOTIVO: {conf['motivo'].upper()}<br>
                         HORA: {conf['hora']}
                     </small>
                 </div>
