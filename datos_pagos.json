@@ -3,7 +3,7 @@
     "Jonathan": 52.5,
     "Gisselle": 45.0,
     "Sofia": 52.5,
-    "Cristopher": 47.5,
+    "Cristopher": 52.5,
     "Leslie": 47.5,
     "lista_retiros": [
         {
@@ -15,6 +15,15 @@
             "fecha": "05/05/2026 19:23",
             "monto": 105.0,
             "motivo": "CONSUMO EN PLAYA LA PISCINA"
+        }
+    ],
+    "historial_movimientos": [
+        {
+            "fecha": "10/07/2026 22:31",
+            "tipo": "INGRESO",
+            "persona": "Cristopher",
+            "monto": 5.0,
+            "concepto": "Pago semanal y adeudado"
         }
     ]
 }
