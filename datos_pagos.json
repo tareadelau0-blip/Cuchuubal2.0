@@ -4,17 +4,19 @@
     "Gisselle": 45.0,
     "Sofia": 52.5,
     "Cristopher": 52.5,
-    "Leslie": 47.5,
+    "Leslie": 52.5,
     "lista_retiros": [
         {
             "fecha": "28/04/2026 17:25",
             "monto": 55.0,
-            "motivo": "ALQUILER DE CARRO Y COMBUSTIBLE PARA SALIDA A LA PLAYA"
+            "motivo": "ALQUILER DE CARRO Y COMBUSTIBLE PARA SALIDA A LA PLAYA",
+            "id": "7bb509f2-5f40-4d9e-b035-89bef4cbad80"
         },
         {
             "fecha": "05/05/2026 19:23",
             "monto": 105.0,
-            "motivo": "CONSUMO EN PLAYA LA PISCINA"
+            "motivo": "CONSUMO EN PLAYA LA PISCINA",
+            "id": "a54be490-c743-4c67-bc8b-cbc7771b42ac"
         }
     ],
     "historial_movimientos": [
@@ -23,7 +25,16 @@
             "tipo": "INGRESO",
             "persona": "Cristopher",
             "monto": 5.0,
-            "concepto": "Pago semanal y adeudado"
+            "concepto": "Pago semanal y adeudado",
+            "id": "508cee95-9243-4d4d-81d5-64692110cf3d"
+        },
+        {
+            "id": "2ff1adde-8cf0-4bf7-8d19-25e05387fd24",
+            "fecha": "15/07/2026 13:17",
+            "tipo": "INGRESO",
+            "persona": "Leslie",
+            "monto": 5.0,
+            "concepto": "Pago Semanal"
         }
     ]
 }
