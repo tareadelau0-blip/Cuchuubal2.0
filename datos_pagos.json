@@ -4,7 +4,7 @@
     "Gisselle": 45.0,
     "Sofia": 52.5,
     "Cristopher": 52.5,
-    "Leslie": 50.0,
+    "Leslie": 52.5,
     "lista_retiros": [
         {
             "fecha": "28/04/2026 17:25",
@@ -43,6 +43,14 @@
             "persona": "Leslie",
             "monto": 2.5,
             "concepto": "CORRECCIÓN - PRUEBA DE CORRECCIONES"
+        },
+        {
+            "id": "9ddbda9b-d41b-4c51-9906-2c749d7b7f82",
+            "fecha": "15/07/2026 13:21",
+            "tipo": "INGRESO",
+            "persona": "Leslie",
+            "monto": 2.5,
+            "concepto": "Pago semanal"
         }
     ]
 }
