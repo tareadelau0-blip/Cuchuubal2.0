@@ -1,6 +1,6 @@
 {
     "Ociel": 25.0,
-    "Jonathan": 52.5,
+    "Jonathan": 62.5,
     "Gisselle": 55.0,
     "Sofia": 60.0,
     "Cristopher": 60.0,
@@ -83,6 +83,14 @@
             "persona": "Cristopher",
             "monto": 7.5,
             "concepto": "Pago semanal"
+        },
+        {
+            "id": "e143baee-a62d-4a78-8cee-af88b6f5b703",
+            "fecha": "30/07/2026 13:57",
+            "tipo": "INGRESO",
+            "persona": "Jonathan",
+            "monto": 10.0,
+            "concepto": "pago semanal"
         }
     ]
 }
