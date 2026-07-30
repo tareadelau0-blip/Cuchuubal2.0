@@ -2,7 +2,7 @@
     "Ociel": 25.0,
     "Jonathan": 52.5,
     "Gisselle": 55.0,
-    "Sofia": 55.0,
+    "Sofia": 60.0,
     "Cristopher": 52.5,
     "Leslie": 52.5,
     "lista_retiros": [
@@ -66,6 +66,14 @@
             "tipo": "INGRESO",
             "persona": "Gisselle",
             "monto": 10.0,
+            "concepto": "Pago semanal"
+        },
+        {
+            "id": "cf9ef46f-613a-4734-b830-ed31f7da150c",
+            "fecha": "30/07/2026 13:52",
+            "tipo": "INGRESO",
+            "persona": "Sofia",
+            "monto": 5.0,
             "concepto": "Pago semanal"
         }
     ]
