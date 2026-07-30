@@ -3,7 +3,7 @@
     "Jonathan": 52.5,
     "Gisselle": 55.0,
     "Sofia": 60.0,
-    "Cristopher": 52.5,
+    "Cristopher": 60.0,
     "Leslie": 52.5,
     "lista_retiros": [
         {
@@ -74,6 +74,14 @@
             "tipo": "INGRESO",
             "persona": "Sofia",
             "monto": 5.0,
+            "concepto": "Pago semanal"
+        },
+        {
+            "id": "7fab80ca-d88d-46be-bb07-4f174e6d1622",
+            "fecha": "30/07/2026 13:54",
+            "tipo": "INGRESO",
+            "persona": "Cristopher",
+            "monto": 7.5,
             "concepto": "Pago semanal"
         }
     ]
