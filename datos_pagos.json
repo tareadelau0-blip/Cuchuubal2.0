@@ -1,7 +1,7 @@
 {
     "Ociel": 25.0,
     "Jonathan": 62.5,
-    "Gisselle": 60.0,
+    "Gisselle": 62.5,
     "Sofia": 70.0,
     "Cristopher": 62.5,
     "Leslie": 62.5,
@@ -129,6 +129,14 @@
             "fecha": "19/08/2026 19:47",
             "tipo": "INGRESO",
             "persona": "Cristopher",
+            "monto": 2.5,
+            "concepto": "Pago registrado"
+        },
+        {
+            "id": "07a1fa4d-c136-4582-8bc6-7c41984e33ed",
+            "fecha": "19/08/2026 19:47",
+            "tipo": "INGRESO",
+            "persona": "Gisselle",
             "monto": 2.5,
             "concepto": "Pago registrado"
         }
