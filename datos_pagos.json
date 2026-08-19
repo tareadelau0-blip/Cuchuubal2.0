@@ -125,30 +125,6 @@
             "concepto": "Pago semanal"
         },
         {
-            "id": "eb89a521-53e3-4d14-a204-f65087126c4e",
-            "fecha": "19/08/2026 19:47",
-            "tipo": "INGRESO",
-            "persona": "Cristopher",
-            "monto": 2.5,
-            "concepto": "Pago registrado"
-        },
-        {
-            "id": "07a1fa4d-c136-4582-8bc6-7c41984e33ed",
-            "fecha": "19/08/2026 19:47",
-            "tipo": "INGRESO",
-            "persona": "Gisselle",
-            "monto": 2.5,
-            "concepto": "Pago registrado"
-        },
-        {
-            "id": "a28c2c55-58cb-4f6a-9c08-e135149872b3",
-            "fecha": "19/08/2026 19:47",
-            "tipo": "INGRESO",
-            "persona": "Gisselle",
-            "monto": 10.0,
-            "concepto": "Pago registrado"
-        },
-        {
             "id": "56abbed9-c297-42a4-925b-51dba218760f",
             "fecha": "19/08/2026 19:47",
             "tipo": "INGRESO",
