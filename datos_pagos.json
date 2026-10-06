@@ -4,7 +4,7 @@
     "Gisselle": 75.0,
     "Sofia": 75.0,
     "Cristopher": 77.5,
-    "Leslie": 87.5,
+    "Leslie": 97.5,
     "lista_retiros": [
         {
             "fecha": "28/04/2026 17:25",
@@ -211,6 +211,14 @@
             "persona": "Leslie",
             "monto": 10.0,
             "concepto": "p"
+        },
+        {
+            "id": "3958b52a-d104-491c-b847-9f2c0a83b3e2",
+            "fecha": "06/10/2026 19:11",
+            "tipo": "INGRESO",
+            "persona": "Leslie",
+            "monto": 10.0,
+            "concepto": "pago semanal"
         }
     ]
 }
