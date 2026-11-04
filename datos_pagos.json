@@ -17,6 +17,12 @@
             "monto": 105.0,
             "motivo": "CONSUMO EN PLAYA LA PISCINA",
             "id": "a54be490-c743-4c67-bc8b-cbc7771b42ac"
+        },
+        {
+            "id": "120e1ebc-e3b4-4782-bb0a-37dfaa38b3f8",
+            "fecha": "04/11/2026 17:48",
+            "monto": 20.0,
+            "motivo": "RESERVA DE VEHICULO"
         }
     ],
     "historial_movimientos": [
@@ -227,6 +233,14 @@
             "persona": "Jonathan",
             "monto": 7.5,
             "concepto": "Pago final"
+        },
+        {
+            "id": "120e1ebc-e3b4-4782-bb0a-37dfaa38b3f8",
+            "fecha": "04/11/2026 17:48",
+            "tipo": "RETIRO",
+            "persona": null,
+            "monto": 20.0,
+            "concepto": "RESERVA DE VEHICULO"
         }
     ]
 }
