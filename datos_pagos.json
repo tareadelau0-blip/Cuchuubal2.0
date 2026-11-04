@@ -23,6 +23,12 @@
             "fecha": "04/11/2026 17:48",
             "monto": 20.0,
             "motivo": "RESERVA DE VEHICULO"
+        },
+        {
+            "id": "2205a463-df86-490e-9f1a-9f754504f957",
+            "fecha": "04/11/2026 17:49",
+            "monto": 48.0,
+            "motivo": "ANTICIPO LESLIE"
         }
     ],
     "historial_movimientos": [
@@ -241,6 +247,14 @@
             "persona": null,
             "monto": 20.0,
             "concepto": "RESERVA DE VEHICULO"
+        },
+        {
+            "id": "2205a463-df86-490e-9f1a-9f754504f957",
+            "fecha": "04/11/2026 17:49",
+            "tipo": "RETIRO",
+            "persona": null,
+            "monto": 48.0,
+            "concepto": "ANTICIPO LESLIE"
         }
     ]
 }
