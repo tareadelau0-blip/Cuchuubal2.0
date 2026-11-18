@@ -29,6 +29,12 @@
             "fecha": "04/11/2026 17:49",
             "monto": 48.0,
             "motivo": "ANTICIPO LESLIE"
+        },
+        {
+            "id": "c1a5d16f-afdd-4548-a294-456acd853f0a",
+            "fecha": "18/11/2026 21:23",
+            "monto": 172.0,
+            "motivo": "VIAJE A MIRADORES DEL PACIFICO COMPLEMENTO DE GAS Y COMIDA Y ALQUILER DEL CARRO"
         }
     ],
     "historial_movimientos": [
@@ -255,6 +261,14 @@
             "persona": null,
             "monto": 48.0,
             "concepto": "ANTICIPO LESLIE"
+        },
+        {
+            "id": "c1a5d16f-afdd-4548-a294-456acd853f0a",
+            "fecha": "18/11/2026 21:23",
+            "tipo": "RETIRO",
+            "persona": null,
+            "monto": 172.0,
+            "concepto": "VIAJE A MIRADORES DEL PACIFICO COMPLEMENTO DE GAS Y COMIDA Y ALQUILER DEL CARRO"
         }
     ]
 }
